@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+
+import '../../providers/image_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/image_picker_service.dart';
 
 import '../../shared/widgets/welcome_header.dart';
 import '../../shared/widgets/scan_button.dart';
 import '../../shared/widgets/quick_action_card.dart';
 import '../../shared/widgets/recent_plant_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedImage = ref.watch(selectedImageProvider);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -21,7 +27,17 @@ class HomeScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              const ScanButton(),
+              selectedImage == null
+                  ? const ScanButton()
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.file(
+                        selectedImage,
+                        height: 300,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
 
               const SizedBox(height: 32),
 
@@ -31,14 +47,34 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.camera_alt_outlined,
                     title: "Camera",
                     subtitle: "Take a photo",
-                    onTap: () {},
+                    onTap: () async {
+                      final imageService = ImagePickerService();
+
+                      final image = await imageService.pickFromCamera();
+
+                      if (image != null) {
+                        ref
+                            .read(selectedImageProvider.notifier)
+                            .setImage(File(image.path));
+                      }
+                    },
                   ),
                   const SizedBox(width: 16),
                   QuickActionCard(
                     icon: Icons.photo_library_outlined,
                     title: "Gallery",
                     subtitle: "Choose photo",
-                    onTap: () {},
+                    onTap: () async {
+                      final imageService = ImagePickerService();
+
+                      final image = await imageService.pickFromGallery();
+
+                      if (image != null) {
+                        ref
+                            .read(selectedImageProvider.notifier)
+                            .setImage(File(image.path));
+                      }
+                    },
                   ),
                 ],
               ),
@@ -47,10 +83,7 @@ class HomeScreen extends StatelessWidget {
 
               const Text(
                 "Recent Scans",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 16),
